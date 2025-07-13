@@ -1,9 +1,9 @@
 // File: src/app/login/page.jsx
-"use client"; // This is a Client Component, as it uses browser features like state and forms.
+"use client";
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { loginUser } from '@/lib/api'; // Import our new API function
+import { loginUser } from '@/lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -18,17 +18,11 @@ export default function LoginPage() {
 
     try {
       const response = await loginUser({ email, password });
-      
-      // On success, the API returns an access_token
       if (response.data.access_token) {
-        // Store the token in the browser's local storage
         localStorage.setItem('access_token', response.data.access_token);
-        
-        // Redirect to the homepage after successful login
         window.location.href = '/'; 
       }
     } catch (err) {
-      // Handle login errors from the API
       setError(err.response?.data?.msg || 'An unknown error occurred.');
     } finally {
       setLoading(false);
@@ -48,32 +42,11 @@ export default function LoginPage() {
           <div className="grid gap-4">
             <div className="grid gap-2">
               <label htmlFor="email">Email</label>
-              <input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+              <input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div className="grid gap-2">
-              <div className="flex items-center">
-                <label htmlFor="password">Password</label>
-                <Link
-                  href="/forgot-password"
-                  className="ml-auto inline-block text-sm underline"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <label htmlFor="password">Password</label>
+              <input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
             <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400" disabled={loading}>
