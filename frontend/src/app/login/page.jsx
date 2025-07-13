@@ -1,74 +1,93 @@
-'use client';
+// File: src/app/login/page.jsx
+"use client"; // This is a Client Component, as it uses browser features like state and forms.
 
 import { useState } from 'react';
-import axios from 'axios';
-import { useAuth } from '../../context/AuthContext'; // <-- Import the useAuth hook
+import Link from 'next/link';
+import { loginUser } from '@/lib/api'; // Import our new API function
 
 export default function LoginPage() {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-
-  const [message, setMessage] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  
-  const { login } = useAuth(); // <-- Get the login function from our context
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('');
     setError('');
+    setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/users/login', formData);
+      const response = await loginUser({ email, password });
       
-      // --- NEW LOGIC ---
-      // On success, call the login function from our context with the user data and token
-      login(response.data, response.data.token); 
-
-      setMessage(`Login successful! Welcome, ${response.data.fullName}.`);
-      
+      // On success, the API returns an access_token
+      if (response.data.access_token) {
+        // Store the token in the browser's local storage
+        localStorage.setItem('access_token', response.data.access_token);
+        
+        // Redirect to the homepage after successful login
+        window.location.href = '/'; 
+      }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Login failed. Please try again.';
-      setError(errorMessage);
+      // Handle login errors from the API
+      setError(err.response?.data?.msg || 'An unknown error occurred.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '500px', margin: 'auto', padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1>Login to Reacher</h1>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Email</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
+    <div className="flex items-center justify-center py-12">
+      <div className="mx-auto grid w-[350px] gap-6">
+        <div className="grid gap-2 text-center">
+          <h1 className="text-3xl font-bold">Login</h1>
+          <p className="text-balance text-muted-foreground">
+            Enter your email below to login to your account
+          </p>
         </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Password</label>
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <div className="flex items-center">
+                <label htmlFor="password">Password</label>
+                <Link
+                  href="/forgot-password"
+                  className="ml-auto inline-block text-sm underline"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
+              <input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400" disabled={loading}>
+              {loading ? 'Logging in...' : 'Login'}
+            </button>
+          </div>
+        </form>
+        <div className="mt-4 text-center text-sm">
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="underline">
+            Sign up
+          </Link>
         </div>
-        <button type="submit" style={{ padding: '10px 20px', cursor: 'pointer' }}>Login</button>
-      </form>
-      {message && <p style={{ color: 'green', marginTop: '15px' }}>{message}</p>}
-      {error && <p style={{ color: 'red', marginTop: '15px' }}>{error}</p>}
+      </div>
     </div>
   );
 }
