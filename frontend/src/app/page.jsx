@@ -1,6 +1,5 @@
 // File: src/app/page.jsx
 "use client";
-
 import Link from 'next/link';
 
 export default function HomePage() {

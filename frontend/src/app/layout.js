@@ -1,32 +1,23 @@
-import { Geist, Geist_Mono } from "next/font/google";
+// File: src/app/layout.js
 import "./globals.css";
-import { AuthProvider } from '../context/AuthContext'; // <-- Import the AuthProvider
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import Header from "@/components/Header"; // Make sure this path is correct
 
 export const metadata = {
-  title: "Reacher App", // Updated title
-  description: "The official Reacher web application.",
+  title: "Reacher Platform",
+  description: "Business intelligence and contact management system",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {/* Wrap the entire application with the AuthProvider */}
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+      <body>
+        <div className="flex flex-col min-h-screen bg-gray-50">
+          <Header />
+          <main className="flex-grow container mx-auto px-6 py-8">
+            {children}
+          </main>
+          {/* We will add the footer back later */}
+        </div>
       </body>
     </html>
   );
