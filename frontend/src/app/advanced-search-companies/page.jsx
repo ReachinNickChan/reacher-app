@@ -1,150 +1,101 @@
-"use client";
+// File: src/app/advanced-search-companies/page.jsx
+"use client"; // This is critical - it makes the page a Client Component
 
-import { useState } from 'react';
-import axios from 'axios';
-import { useAuth } from '../../context/AuthContext'; // <-- Import the useAuth hook
+import { useState, useEffect } from 'react';
+import { searchCompanies } from '@/lib/api'; // Use our new, centralized API client
 
-const companyTypeOptions = [
-  'Private Independent',
-  'Public Company',
-  'Subsidiary',
-];
-
-export default function AdvancedSearchPage() {
-  const [filters, setFilters] = useState({
-    companyName: '',
-    industry: '',
-    companyCountry: '',
-    companyType: [],
-  });
-
+export default function AdvancedSearchCompaniesPage() {
+  const [filters, setFilters] = useState({ companyName: '', industry: '', companyCountry: '' });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
-  const { token, user } = useAuth(); // <-- Get the token and user from our context
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // ADAPTED: Check for login status on page load
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      setIsLoggedIn(true);
+    } else {
+        // If not logged in, redirect to login page
+        window.location.href = '/login';
+    }
+  }, []);
 
   const handleChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
-  };
-
-  const handleCheckboxChange = (e) => {
-    const { value, checked } = e.target;
-    const newCompanyTypes = checked
-      ? [...filters.companyType, value]
-      : filters.companyType.filter((type) => type !== value);
-    
-    setFilters({ ...filters, companyType: newCompanyTypes });
   };
 
   const handleSearch = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setResults([]);
-
-    // If there's no token, we can't make an authenticated request.
-    if (!token) {
-        setError('You must be logged in to perform a search.');
-        setLoading(false);
-        return;
-    }
-
-    const queryParams = new URLSearchParams();
-    if (filters.companyName) queryParams.append('companyName', filters.companyName);
-    if (filters.industry) queryParams.append('industry', filters.industry);
-    if (filters.companyCountry) queryParams.append('companyCountry', filters.companyCountry);
-    filters.companyType.forEach(type => queryParams.append('companyType', type));
-
+    
     try {
-      // --- NEW: Create a config object for the request with the auth header ---
-      const config = {
-          headers: {
-              Authorization: `Bearer ${token}`
-          }
-      };
-
-      const response = await axios.get(`http://localhost:5000/api/companies?${queryParams.toString()}`, config);
-      setResults(response.data);
+        // ADAPTED: Use our pre-configured searchCompanies function
+        const response = await searchCompanies({
+            name: filters.companyName,
+            industry: filters.industry,
+            location: filters.companyCountry
+        });
+        setResults(response.data.data);
     } catch (err) {
-      setError('Failed to fetch search results.');
-      console.error('Search error:', err);
+        setError('Failed to fetch search results. Please try again.');
+        console.error('Search error:', err);
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
 
+  // Don't render the page until we've confirmed the user is logged in
+  if (!isLoggedIn) {
+    return <p>Redirecting to login...</p>;
+  }
+
   return (
-    <div style={{ maxWidth: '1200px', margin: 'auto', padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1>Advanced Company Search</h1>
-      { !user && <p style={{color: 'red'}}>Please log in to use the search functionality.</p>}
+    <div className="max-w-7xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6">Advanced Company Search</h1>
+      
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <form onSubmit={handleSearch} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="companyName" className="block text-sm font-medium text-gray-700">Company Name</label>
+              <input type="text" name="companyName" id="companyName" value={filters.companyName} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+            </div>
+            <div>
+              <label htmlFor="industry" className="block text-sm font-medium text-gray-700">Industry</label>
+              <input type="text" name="industry" id="industry" value={filters.industry} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+            </div>
+            <div>
+              <label htmlFor="companyCountry" className="block text-sm font-medium text-gray-700">Country</label>
+              <input type="text" name="companyCountry" id="companyCountry" value={filters.companyCountry} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+            </div>
+          </div>
+          <div className="text-right">
+            <button type="submit" disabled={loading} className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400">
+              {loading ? 'Searching...' : 'Search'}
+            </button>
+          </div>
+        </form>
+      </div>
 
-      {/* Form and results table remain the same... */}
-      <form onSubmit={handleSearch} style={{ marginBottom: '20px', padding: '20px', border: '1px solid #ccc' }}>
-         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-           <div>
-             <label style={{ display: 'block', marginBottom: '5px' }}>Company Name</label>
-             <input type="text" name="companyName" value={filters.companyName} onChange={handleChange} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
-           </div>
-           <div>
-             <label style={{ display: 'block', marginBottom: '5px' }}>Industry</label>
-             <input type="text" name="industry" value={filters.industry} onChange={handleChange} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
-           </div>
-           <div>
-             <label style={{ display: 'block', marginBottom: '5px' }}>Country</label>
-             <input type="text" name="companyCountry" value={filters.companyCountry} onChange={handleChange} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
-           </div>
-           <div style={{ gridColumn: '1 / -1' }}>
-             <label style={{ display: 'block', marginBottom: '5px' }}>Company Type</label>
-             <div style={{ display: 'flex', gap: '15px' }}>
-               {companyTypeOptions.map((type) => (
-                 <label key={type}>
-                   <input
-                     type="checkbox"
-                     value={type}
-                     checked={filters.companyType.includes(type)}
-                     onChange={handleCheckboxChange}
-                   />
-                   {type}
-                 </label>
-               ))}
-             </div>
-           </div>
-         </div>
-         <button type="submit" style={{ marginTop: '20px', padding: '10px 20px', cursor: 'pointer' }} disabled={!user}>Search</button>
-       </form>
-
-      <h2>Results</h2>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid #000' }}>
-              <th style={{ padding: '8px', textAlign: 'left' }}>Company Name</th>
-              <th style={{ padding: '8px', textAlign: 'left' }}>Industry</th>
-              <th style={{ padding: '8px', textAlign: 'left' }}>Country</th>
-              <th style={{ padding: '8px', textAlign: 'left' }}>Company Type</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Results</h2>
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          {error && <p className="text-red-500">{error}</p>}
+          <ul>
             {results.length > 0 ? (
               results.map((company) => (
-                <tr key={company._id} style={{ borderBottom: '1px solid #ccc' }}>
-                  <td style={{ padding: '8px' }}>{company.companyName}</td>
-                  <td style={{ padding: '8px' }}>{company.industry}</td>
-                  <td style={{ padding: '8px' }}>{company.companyCountry}</td>
-                  <td style={{ padding: '8px' }}>{company.companyType}</td>
-                </tr>
+                <li key={company._id} className="py-2 border-b">
+                  <p className="font-semibold">{company.company_name}</p>
+                  <p className="text-sm text-gray-600">{company.industry} - {company.city}, {company.country}</p>
+                </li>
               ))
-            ) : (
-              <tr>
-                <td colSpan="4" style={{ padding: '8px', textAlign: 'center' }}>
-                  { !loading && 'No results found. Try adjusting your search.' }
-                </td>
-              </tr>
-            )}
-            {loading && <tr><td colSpan="4" style={{ padding: '8px', textAlign: 'center' }}>Loading...</td></tr>}
-            {error && !loading && <tr><td colSpan="4" style={{ padding: '8px', textAlign: 'center', color: 'red' }}>{error}</td></tr>}
-          </tbody>
-        </table>
+            ) : <p className="text-gray-500">No results found. Please enter search criteria and click Search.</p>}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }
