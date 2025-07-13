@@ -1,3 +1,4 @@
+// File: src/lib/api.js
 import axios from 'axios';
 
 const baseURL = process.env.NEXT_PUBLIC_API_URL;
@@ -5,7 +6,9 @@ const baseURL = process.env.NEXT_PUBLIC_API_URL;
 const api = axios.create({
   baseURL: baseURL,
   timeout: 10000,
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 api.interceptors.request.use(
@@ -22,6 +25,7 @@ api.interceptors.request.use(
 );
 
 export const loginUser = (credentials) => api.post('/api/auth/login', credentials);
+export const registerUser = (userData) => api.post('/api/auth/register', userData); // <-- THIS LINE WAS MISSING
 export const getProfile = () => api.get('/api/auth/profile');
 export const searchPersons = (filters) => api.post('/api/persons/search', filters);
 export const searchCompanies = (filters) => api.post('/api/companies/search', filters);
