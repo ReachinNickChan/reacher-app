@@ -1,59 +1,35 @@
-/**
- * @fileoverview React Context for managing global authentication state.
- * @description Provides user and token state, along with login/logout functions,
- * to the entire application. It also persists the user session in localStorage.
- */
+// File: src/context/AuthContext.js
+"use client";
 
-'use client';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-import { createContext, useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+const AuthContext = createContext(null);
 
-// Create the context
-const AuthContext = createContext();
+export function AuthProvider({ children }) {
+  const [token, setToken] = useState(null);
 
-// Create a provider component
-export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [token, setToken] = useState(null);
-    const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    // Get the token from localStorage when the app loads
+    const storedToken = localStorage.getItem('access_token');
+    if (storedToken) {
+      setToken(storedToken);
+    }
+  }, []);
 
-    // useEffect to check for a user session in localStorage when the app loads
-    useEffect(() => {
-        const storedUser = localStorage.getItem('reacherUser');
-        const storedToken = localStorage.getItem('reacherToken');
+  const value = { token, setToken };
 
-        if (storedUser && storedToken) {
-            setUser(JSON.parse(storedUser));
-            setToken(storedToken);
-        }
-        setLoading(false);
-    }, []);
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
 
-    // Login function
-    const login = (userData, userToken) => {
-        setUser(userData);
-        setToken(userToken);
-        localStorage.setItem('reacherUser', JSON.stringify(userData));
-        localStorage.setItem('reacherToken', userToken);
-    };
-
-    // Logout function
-    const logout = () => {
-        setUser(null);
-        setToken(null);
-        localStorage.removeItem('reacherUser');
-        localStorage.removeItem('reacherToken');
-    };
-
-    return (
-        <AuthContext.Provider value={{ user, token, login, logout, loading }}>
-            {children}
-        </AuthContext.Provider>
-    );
-};
-
-// Custom hook to easily use the AuthContext
-export const useAuth = () => {
-    return useContext(AuthContext);
-};
+// Create a custom hook to easily use the context
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
